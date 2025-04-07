@@ -8,16 +8,27 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
+
+const allowedOrigins = [
+  "https://calender-cent-stage.vercel.app",
+  "http://localhost:5173"
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173", 
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
 
-mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected Successfully"))
   .catch((err) => console.error("MongoDB Connection Error:", err));
 
@@ -32,7 +43,7 @@ app.post("/events", async (req, res) => {
     const newEvent = new Event({
       title,
       category,
-      start: new Date(start), 
+      start: new Date(start),
       end: new Date(end),
       color
     });
@@ -40,7 +51,7 @@ app.post("/events", async (req, res) => {
     await newEvent.save();
     res.status(201).json(newEvent);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 });
 
@@ -49,7 +60,7 @@ app.get("/events", async (req, res) => {
     const events = await Event.find();
     res.json(events);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 });
 
@@ -71,7 +82,7 @@ app.put("/events/:id", async (req, res) => {
 
     res.json(updatedEvent);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 });
 
@@ -80,9 +91,9 @@ app.delete("/events/:id", async (req, res) => {
     const deletedEvent = await Event.findByIdAndDelete(req.params.id);
     if (!deletedEvent) return res.status(404).json({ error: "Event not found" });
 
-    res.json({ message: "Event deleted" });
+    res.json({ message: "Event deleted successfully" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 });
 
