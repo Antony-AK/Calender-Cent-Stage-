@@ -8,9 +8,10 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
+app.options("*", cors());
 
 const allowedOrigins = [
-  "https://calender-cent-stage-uxvr.vercel.app/",
+  "https://calender-cent-stage-uxvr.vercel.app",
   "http://localhost:5173"
 ];
 
