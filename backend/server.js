@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 
 const allowedOrigins = [
-  "https://calender-cent-stage.vercel.app",
+  "https://calender-cent-stage-uxvr.vercel.app/",
   "http://localhost:5173"
 ];
 
