@@ -55,11 +55,11 @@ const EventModal = ({ show, onClose, event }) => {
 
     try {
       if (event) {
-        const res = await axios.put(`http://localhost:5000/events/${event._id}`, newEvent);
+        const res = await axios.put(`https://calender-cent-stage.onrender.com/events/${event._id}`, newEvent);
         dispatch(updateEvent(res.data));
         alert("Event updated successfully!");
       } else {
-        const res = await axios.post("http://localhost:5000/events", newEvent);
+        const res = await axios.post("https://calender-cent-stage.onrender.com/events", newEvent);
         dispatch(addEvent(res.data));
         alert("Event added successfully!");
       }
@@ -74,7 +74,7 @@ const EventModal = ({ show, onClose, event }) => {
     if (!event) return;
     if (window.confirm("Are you sure you want to delete this event?")) {
       try {
-        await axios.delete(`http://localhost:5000/events/${event._id}`);
+        await axios.delete(`https://calender-cent-stage.onrender.com/events/${event._id}`);
         dispatch(deleteEvent(event._id));
         alert("Event deleted successfully!");
         onClose();

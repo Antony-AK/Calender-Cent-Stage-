@@ -29,7 +29,7 @@ const MyCalendar = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/events");
+        const res = await axios.get("https://calender-cent-stage.onrender.com/events");
         dispatch(setEvents(res.data));
       } catch (error) {
         console.error("Error fetching events:", error);
@@ -48,7 +48,7 @@ const MyCalendar = () => {
       }
   
       const updatedEvent = { ...event, start, end };
-      await axios.put(`http://localhost:5000/events/${event._id}`, updatedEvent);
+      await axios.put(`https://calender-cent-stage.onrender.com/${event._id}`, updatedEvent);
       dispatch(moveEvent({ id: event._id, start, end }));
   
     } catch (error) {
@@ -117,7 +117,7 @@ const MyCalendar = () => {
           event={selectedEvent}
           onDelete={async (id) => {
             try {
-              await axios.delete(`http://localhost:5000/events/${id}`);
+              await axios.delete(`https://calender-cent-stage.onrender.com/${id}`);
               dispatch(deleteEvent(id));
             } catch (error) {
               console.error("Error deleting event:", error);
