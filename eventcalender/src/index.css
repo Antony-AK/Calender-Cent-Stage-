@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.rbc-calendar {
+  background-color: white;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+
+.rbc-day-bg:hover {
+  background-color: #fecaca !important; /* Light red */
+  transition: background-color 0.2s ease-in-out;
+}
