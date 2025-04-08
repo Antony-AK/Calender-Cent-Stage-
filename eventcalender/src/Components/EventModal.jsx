@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
-import { addEvent, updateEvent, deleteEvent } from "../store";
-import { FaTimes, FaCalendarAlt, FaClock, FaTrash, FaEdit } from "react-icons/fa";
+import { addEvent, updateEvent } from "../store";
+import { FaTimes, FaCalendarAlt, FaClock, FaEdit } from "react-icons/fa";
 
 const EventModal = ({ show, onClose, event }) => {
   const parseDateTime = (dateTime) => {
@@ -70,20 +70,6 @@ const EventModal = ({ show, onClose, event }) => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!event) return;
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      try {
-        await axios.delete(`https://calender-cent-stage.onrender.com/events/${event._id}`);
-        dispatch(deleteEvent(event._id));
-        alert("Event deleted successfully!");
-        onClose();
-      } catch (error) {
-        console.error("Error deleting event:", error);
-        alert("Failed to delete event. Try again!");
-      }
-    }
-  };
 
   if (!show) return null;
 
@@ -154,11 +140,7 @@ const EventModal = ({ show, onClose, event }) => {
         </div>
 
         <div className="flex justify-end mt-8">
-          {event && (
-            <button onClick={handleDelete} className="px-4 py-2 bg-red-500 text-white rounded mr-2 flex items-center">
-              <FaTrash className="mr-1" /> Delete
-            </button>
-          )}
+        
           <button onClick={handleSave} className="px-4 py-2 bg-green-500 text-white rounded flex items-center">
             <FaEdit className="mr-1" /> {event ? "Update" : "Create"}
           </button>
