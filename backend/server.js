@@ -9,7 +9,6 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// CORS Configuration
 const allowedOrigins = [
   "https://calender-cent-stage-uxvr.vercel.app",
   "http://localhost:5173"
@@ -29,7 +28,6 @@ app.use(
   })
 );
 
-// MongoDB Connection
 mongoose.set("strictQuery", false);
 mongoose
   .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -40,12 +38,10 @@ mongoose.connection.on("error", (err) => {
   console.error("❌ MongoDB Error:", err);
 });
 
-// Default Route for /
 app.get("/", (req, res) => {
   res.send("✅ Backend is running! API is working fine.");
 });
 
-// Create Event
 app.post("/events", async (req, res) => {
   try {
     const { title, category, start, end, color } = req.body;
@@ -70,7 +66,6 @@ app.post("/events", async (req, res) => {
   }
 });
 
-// Get All Events
 app.get("/events", async (req, res) => {
   try {
     const events = await Event.find();
@@ -81,7 +76,6 @@ app.get("/events", async (req, res) => {
   }
 });
 
-// Update Event
 app.put("/events/:id", async (req, res) => {
   try {
     const { title, category, start, end, color } = req.body;
@@ -105,7 +99,6 @@ app.put("/events/:id", async (req, res) => {
   }
 });
 
-// Delete Event
 app.delete("/events/:id", async (req, res) => {
   try {
     const deletedEvent = await Event.findByIdAndDelete(req.params.id);
@@ -118,6 +111,5 @@ app.delete("/events/:id", async (req, res) => {
   }
 });
 
-// Server Port
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
