@@ -3,6 +3,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const Event = require("./models/Event");
+const Goal = require("./models/Goal"); 
+const goal = require("./routes/goals");
+
 
 dotenv.config();
 
@@ -42,29 +45,61 @@ app.get("/", (req, res) => {
   res.send("✅ Backend is running! API is working fine.");
 });
 
+app.get("/goals/:goalId/events", async (req, res) => {
+  try {
+    const { goalId } = req.params; 
+
+    const goal = await Goal.findById(goalId).populate("events").exec();
+
+    if (!goal) {
+      return res.status(404).json({ error: "Goal not found" });
+    }
+
+    res.json(goal.events); 
+  } catch (err) {
+    console.error("Error fetching events for goal:", err);
+    res.status(500).json({ error: err.message || "Internal Server Error" });
+  }
+});
+
 app.post("/events", async (req, res) => {
   try {
-    const { title, category, start, end, color } = req.body;
+    let { title, category, start, end, color } = req.body;
 
-    if (!title || !category || !start || !end) {
-      return res.status(400).json({ error: "All fields (title, category, start, end) are required." });
+    title = title || "Untitled Event";
+    category = category || "General";
+    color = color || "#0000FF"; 
+
+    if (!start || !end) {
+      return res.status(400).json({ error: "Both start and end dates are required." });
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: "Invalid date format. Ensure start and end are valid ISO strings." });
     }
 
     const newEvent = new Event({
       title,
       category,
-      start: new Date(start),
-      end: new Date(end),
+      start: startDate,
+      end: endDate,
       color,
     });
 
     await newEvent.save();
     res.status(201).json(newEvent);
+
   } catch (err) {
     console.error("Error creating event:", err);
     res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 });
+
+
+
 
 app.get("/events", async (req, res) => {
   try {
@@ -101,7 +136,11 @@ app.put("/events/:id", async (req, res) => {
 
 app.delete("/events/:id", async (req, res) => {
   try {
-    const deletedEvent = await Event.findByIdAndDelete(req.params.id);
+    const eventId = req.params.id;
+
+    await Goal.updateMany({}, { $pull: { events: eventId } });
+
+    const deletedEvent = await Event.findByIdAndDelete(eventId);
     if (!deletedEvent) return res.status(404).json({ error: "Event not found" });
 
     res.json({ message: "✅ Event deleted successfully" });
@@ -110,6 +149,9 @@ app.delete("/events/:id", async (req, res) => {
     res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 });
+
+
+app.use("/goals", goal);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

@@ -6,6 +6,7 @@ const eventSchema = new mongoose.Schema({
     start: { type: Date, required: true },
     end: { type: Date, required: true },
     color: { type: String, default: "blue" }
+    
 });
 
 module.exports = mongoose.model("Event", eventSchema);
