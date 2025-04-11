@@ -1,0 +1,68 @@
+.calendar-container {
+    width: 100%;
+    padding: 10px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .custom-calendar {
+    border-radius: 8px;
+    padding: 10px;
+  }
+  
+  .rbc-month-view {
+    
+    background-color: #f8f9fa;
+    border-radius: 8px;
+  }
+  
+  .rbc-day-bg {
+    border: 1px solid #ddd;
+    transition: background 0.3s ease;
+  }
+  
+  .rbc-day-bg:hover {
+    background-color: #e9ecef;
+  }
+  
+  .rbc-time-view {
+    border-radius: 8px;
+  }
+  
+  .rbc-time-slot {
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .rbc-time-content {
+    border-left: 2px solid #ccc;
+  }
+  
+  .rbc-time-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #ddd;
+    font-weight: bold;
+  }
+  
+  .rbc-event {
+    width: 92%;
+    margin: 2px auto;
+    background-color: #dbd7d7 !important;
+    color: white !important;
+    border-radius: 5px;
+    padding: 2px;
+    font-size: 12px;
+  }
+  
+  .rbc-event:hover {
+    opacity: 0.8;
+    cursor: pointer;
+  }
+
+  .task-item {
+    cursor: grab;
+  }
+  .task-item:active {
+    cursor: grabbing;
+  }
+  

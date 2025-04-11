@@ -3,8 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { setEvents, moveEvent, deleteEvent } from "../store";
 import { Calendar, momentLocalizer } from "react-big-calendar";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import EventModal from "./EventModal";
@@ -12,6 +10,9 @@ import CustomToolbar from "./CustomToolbar";
 import EventBadge from "./EventBadge";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
+import "./CalenderStyle.css";
+import { useDrop } from "react-dnd";
+
 
 const DnDCalendar = withDragAndDrop(Calendar);
 const localizer = momentLocalizer(moment);
@@ -39,19 +40,6 @@ const MyCalendar = () => {
     fetchEvents();
   }, [dispatch]);
 
-  const handleEventDrop = async ({ event, start, end }) => {
-    try {
-      const updatedEvent = { ...event, start, end };
-      await axios.put(`https://calender-cent-stage.onrender.com/events/${event._id}`, updatedEvent);
-
-      dispatch(moveEvent({ id: event._id, start, end }));
-      dispatch(setEvents(events.map(e => e._id === event._id ? { ...e, start, end } : e)));
-
-      alert("Event updated successfully!");
-    } catch (error) {
-      console.error("Error updating event:", error);
-    }
-  };
 
   const handleSelectEvent = (event, e) => {
     setSelectedEvent(event);
@@ -66,9 +54,118 @@ const MyCalendar = () => {
     });
   };
 
+  
+  
+  const handleEventDrop = async ({ event, start, end }) => {
+    try {
+      const updatedEvent = {
+        ...event,
+        start: convertToLocalTime(start),
+        end: convertToLocalTime(end),
+      };
+  
+      await axios.put(`https://calender-cent-stage.onrender.com/events/${event._id}`, updatedEvent);
+  
+      dispatch(moveEvent({ id: event._id, start: new Date(start), end: new Date(end) }));
+      dispatch(setEvents(events.map(e => (e._id === event._id ? updatedEvent : e))));
+  
+      alert("Event updated successfully!");
+    } catch (error) {
+      console.error("Error updating event:", error);
+    }
+  };
+  
+  const convertToLocalTime = (utcDate) => {
+    return moment(utcDate).format("YYYY-MM-DD HH:mm:ss"); 
+  };
+
+  const handleEventDropFromSidebar = async (event) => {
+    console.log("📥 Dropped Item Data:", event);
+  
+    if (!event || typeof event !== "object") {
+      console.error("❌ Invalid event data", event);
+      return;
+    }
+  
+    let missingFields = [];
+    if (!event.title) missingFields.push("title");
+    if (!event.start) missingFields.push("start");
+    if (!event.end) missingFields.push("end");
+  
+    if (missingFields.length > 0) {
+      console.error(`❌ Missing required fields: ${missingFields.join(", ")}`, event);
+      return;
+    }
+  
+    const formattedEvent = {
+      title: event.title,
+      start: convertToLocalTime(event.start),
+      end: convertToLocalTime(event.end),
+      color: event.color || "#3498db",
+    };
+  
+    console.log("📤 Sending Event Data:", formattedEvent);
+  
+    try {
+      const response = await axios.post(`http://localhost:5000/events`, formattedEvent);
+      dispatch(setEvents([...events, response.data])); 
+      console.log("✅ Event successfully added:", response.data);
+    } catch (error) {
+      console.error("❌ Error adding event:", error.response ? error.response.data : error.message);
+    }
+  };
+  
+
+  const [{ isOver }, drop] = useDrop({
+    accept: "event",
+    drop: (item, monitor) => {
+      const offset = monitor.getClientOffset();
+      console.log("📌 Drop Offset:", offset);
+  
+      if (!offset) return;
+  
+      // Get the calendar's bounding rectangle
+      const calendarRect = document.querySelector(".rbc-time-content")?.getBoundingClientRect();
+      if (!calendarRect) return console.error("Calendar not found!");
+  
+      // Calculate time based on where the event is dropped
+      const yOffset = offset.y - calendarRect.top; // Y position inside the calendar
+      console.log("📏 Adjusted Y Offset:", yOffset);
+  
+      // Each hour slot height (Adjust this if necessary)
+      const slotHeight = 50; // Example: 50px per 30-minute slot
+      const minutesPerPixel = 30 / slotHeight; // 30 mins per slot
+      const minutesOffset = Math.round(yOffset * minutesPerPixel); 
+  
+      // Get the base date (start of the current calendar view)
+      const baseDate = date || new Date(); 
+      const startTime = new Date(baseDate);
+      startTime.setMinutes(0, 0, 0); 
+      startTime.setHours(0); // Set to the beginning of the day
+      startTime.setMinutes(minutesOffset); // Adjust time by the drop position
+  
+      const endTime = new Date(startTime.getTime() + 30 * 60000); // Default duration: 30 minutes
+  
+      const newEvent = {
+        title: item.title || "New Event",
+        start: startTime,
+        end: endTime,
+        color: item.color || "#3498db",
+      };
+  
+      console.log("📤 Event to be added:", newEvent);
+      handleEventDropFromSidebar(newEvent);
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+  });
+  
+
+
   return (
-    <div className="container mx-auto my-5 p-6 bg-white shadow-lg rounded-xl relative">
-      <DndProvider backend={HTML5Backend}>
+<div ref={drop} className={`container flex w-[75%] mx-auto my-5 p-6 bg-white shadow-lg rounded-xl relative ${isOver ? "bg-gray-100" : ""}`}>
+      
         <DnDCalendar
           localizer={localizer}
           events={events.map(event => ({
@@ -87,10 +184,11 @@ const MyCalendar = () => {
           }}
           onSelectEvent={handleSelectEvent}
           onEventDrop={handleEventDrop}
-          draggableAccessor={() => true}
           resizableAccessor={() => true}
+          draggableAccessor={() => true}
+          externalDragDrop={true}
           style={{ height: 600 }}
-          className="rounded-lg shadow-md p-4"
+          className="rounded-lg shadow-md p-4 calendar-container"
           view={view}
           onView={(newView) => setView(newView)}
           date={date}
@@ -110,13 +208,23 @@ const MyCalendar = () => {
           draggable
           resizable
           onDragStart={() => console.log("Drag started")}
-          onDropFromOutside={() => console.log("Dropped event")}
-        />
-      </DndProvider>
+          dragFromOutsideItem={() => {
+            return { title: "New Event", start: new Date(), end: new Date(Date.now() + 30 * 60000) };
+          }}
+          onDropFromOutside={({ start, end, item }) => {
+            console.log("📌 Dropped Event Data:", start, end, item);
+            handleEventDropFromSidebar({
+              ...item,
+              start: new Date(start),
+              end: new Date(end)
+            });
+          }}
+                  />
+
 
       {showDetails && selectedEvent && (
-        <div 
-          className="absolute bg-white p-4 shadow-lg rounded-md w-80 border z-40" 
+        <div
+          className="absolute bg-white p-4 shadow-lg rounded-md w-80 border z-40"
           style={{ top: detailsPosition.top, left: detailsPosition.left }}
         >
           {/* ❌ Close Button */}
@@ -128,7 +236,7 @@ const MyCalendar = () => {
           </button>
           <h2 className="text-lg font-bold">{selectedEvent.title}</h2>
           <p className="text-gray-600 my-2">
-            <span className="font-medium text-gray-500 me-1">Date:</span> 
+            <span className="font-medium text-gray-500 me-1">Date:</span>
             {moment(selectedEvent.start).format("MMMM Do YYYY")}
           </p>
           <p className="text-gray-600 space-y-2">
@@ -136,7 +244,7 @@ const MyCalendar = () => {
             {moment(selectedEvent.start).format("h:mm A")} - {moment(selectedEvent.end).format("h:mm A")}
           </p>
           <p className="mt-2">
-            <span className="font-medium text-gray-500 me-1">Category: </span>  
+            <span className="font-medium text-gray-500 me-1">Category: </span>
             {selectedEvent.category || "No category mentioned"}
           </p>
           <div className="flex justify-end gap-3 mt-4">
