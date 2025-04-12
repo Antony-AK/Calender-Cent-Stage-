@@ -10,7 +10,7 @@ const Sidebar = ({ onGoalSelect }) => {
   useEffect(() => {
     const fetchGoals = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/goals");
+        const res = await axios.get("https://calender-cent-stage.onrender.com/goals");
         setGoals(res.data);
       } catch (error) {
         console.error("Error fetching goals:", error);
@@ -24,7 +24,7 @@ const Sidebar = ({ onGoalSelect }) => {
     setSelectedGoal(goal);
   
     try {
-      const res = await axios.get(`http://localhost:5000/goals/${goal._id}/events`);
+      const res = await axios.get(`https://calender-cent-stage.onrender.com/goals/${goal._id}/events`);
       console.log("Fetched Events:", res.data); 
   
       setEvents(res.data); 
@@ -44,7 +44,7 @@ const Sidebar = ({ onGoalSelect }) => {
   
 
   return (
-    <div className="w-60 p-4 bg-gray-100 overflow-y-auto shadow-md">
+    <div className="w-60 h-[600px] p-4 bg-gray-100 overflow-y-auto shadow-md">
       <h2 className="text-lg font-semibold mb-4">Goals</h2>
       <ul>
         {goals.map((goal) => (
@@ -87,7 +87,7 @@ export default Sidebar;
 const DraggableEvent = ({ event }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "event",
-    item: { id: event._id, title: event.title, start: event.start, end: event.end },
+    item: { id: event._id, title: event.title, start: event.start, end: event.end, color: event.color },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -98,7 +98,7 @@ const DraggableEvent = ({ event }) => {
       ref={drag}
       className={`p-2 bg-gray-200 rounded mb-2 cursor-pointer ${
         isDragging ? "opacity-50" : ""
-      }`}
+      }` } style={{ backgroundColor: event.color, color: "white" }}
     >
       {event.title}
     </li>
