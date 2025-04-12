@@ -41,15 +41,15 @@ const MyCalendar = () => {
 
   useEffect(() => {
     const deletePastEvents = async () => {
-      const now = moment(); 
-  
+      const now = moment();
+
       const pastEvents = events.filter((event) => {
-        const eventStart = moment(event.start); 
-        const eventEnd = moment(event.end); 
-  
+        const eventStart = moment(event.start);
+        const eventEnd = moment(event.end);
+
         return eventStart.isBefore(now) && eventEnd.isBefore(now);
       });
-  
+
       for (const event of pastEvents) {
         try {
           await axios.delete(`https://calender-cent-stage.onrender.com/events/${event._id}`);
@@ -59,36 +59,35 @@ const MyCalendar = () => {
         }
       }
     };
-  
+
     deletePastEvents();
   }, [events, dispatch]);
-  
+
 
   const handleSelectEvent = (event, e) => {
     setSelectedEvent(event);
     setSelectedSlot(null);
     setShowDetails(true);
     setShowModal(false);
-  
+
     const rect = e.target.getBoundingClientRect();
     setDetailsPosition({
-      top: rect.top + window.scrollY + 10, 
-      left: rect.left + window.scrollX + 10, 
+      top: rect.top + window.scrollY + 10,
+      left: rect.left + window.scrollX + 10,
     });
   };
-  
+
 
   const handleEventResize = async ({ event, start, end }) => {
     try {
       const updatedEvent = {
         ...event,
-        start: convertToLocalTime(start),
-        end: convertToLocalTime(end),
+        start: moment(start).toISOString(),
+        end: moment(end).toISOString(),
       };
 
       await axios.put(`https://calender-cent-stage.onrender.com/events/${event._id}`, updatedEvent);
 
-      // Update Redux state
       dispatch(moveEvent({ id: event._id, start: new Date(start), end: new Date(end) }));
       dispatch(setEvents(events.map(e => (e._id === event._id ? updatedEvent : e))));
 
@@ -103,8 +102,8 @@ const MyCalendar = () => {
     try {
       const updatedEvent = {
         ...event,
-        start: convertToLocalTime(start),
-        end: convertToLocalTime(end),
+        start: moment(start).toISOString(),
+        end: moment(end).toISOString(),
       };
 
       await axios.put(`https://calender-cent-stage.onrender.com/events/${event._id}`, updatedEvent);
@@ -118,9 +117,6 @@ const MyCalendar = () => {
     }
   };
 
-  const convertToLocalTime = (utcDate) => {
-    return moment(utcDate).format("YYYY-MM-DD HH:mm:ss");
-  };
 
   const handleEventDropFromSidebar = async (event) => {
     if (!event || typeof event !== "object") {
@@ -140,8 +136,8 @@ const MyCalendar = () => {
 
     const formattedEvent = {
       title: event.title,
-      start: convertToLocalTime(event.start),
-      end: convertToLocalTime(event.end),
+      start: moment.utc(event.start).toISOString(),
+      end: moment.utc(event.end).toISOString(),
       color: event.color || "#3498db",
     };
 
@@ -159,14 +155,17 @@ const MyCalendar = () => {
     drop: (item, monitor) => {
       const offset = monitor.getClientOffset();
       if (!offset) return;
-  
+
+      console.log("Drop position:", offset);
+
       // Logic for the "week" view
       if (view === "week") {
         const daySlots = document.querySelectorAll(".rbc-day-slot");
         let targetSlot = null;
         let closestDayIndex = 0;
         let smallestDistance = Infinity;
-  
+
+        // Find the closest day slot to the dropped position
         daySlots.forEach((slot, index) => {
           const rect = slot.getBoundingClientRect();
           const distance = Math.abs(offset.x - (rect.left + rect.width / 2));
@@ -176,61 +175,79 @@ const MyCalendar = () => {
             targetSlot = slot;
           }
         });
-  
+
         if (!targetSlot) return;
-  
+
         const slotRect = targetSlot.getBoundingClientRect();
-        const adjustedY = offset.y - 32 / 2; 
-        const yOffsetInSlot = adjustedY - slotRect.top;
+        const adjustedY = offset.y - 32 / 2; // Adjust for the height of the dragged item
+        const yOffsetInSlot = adjustedY - slotRect.top; // Adjust for the top of the slot
         const slotHeight = targetSlot.offsetHeight;
-  
+
+        // Calculate minutes offset based on the vertical position of the drop
         const totalMinutes = 24 * 60;
         const minutesOffset = Math.round((yOffsetInSlot / slotHeight) * totalMinutes);
-  
+
+        // Calculate the start time of the event based on the day and slot position
         const baseDate = moment(date).startOf("week").add(closestDayIndex, "days");
         const startTime = baseDate.clone().startOf("day").add(minutesOffset, "minutes").toDate();
-        const endTime = new Date(startTime.getTime() + 60 * 60000);
-  
+        const endTime = new Date(startTime.getTime() + 60 * 60000); // 1 hour duration
+
+        console.log("Start Time (Week View):", startTime);
+        console.log("End Time (Week View):", endTime);
+
         const newEvent = {
-          title: item.title || item.name || "Untitled",
+          title: item.title || "Untitled",
           start: startTime,
           end: endTime,
           color: item.color || "#3498db",
         };
-  
+
         handleEventDropFromSidebar(newEvent);
       }
 
+      // Logic for "day" view
       else if (view === "day") {
         const daySlot = document.querySelector(".rbc-day-slot");
         if (!daySlot) return;
-  
-        const rect = daySlot.getBoundingClientRect();
-        const adjustedY = offset.y - 30 / 2; 
-        const yOffsetInSlot = adjustedY - rect.top;
+
+        const slotRect = daySlot.getBoundingClientRect();
+        const yOffsetInSlot = offset.y - slotRect.top;
         const slotHeight = daySlot.offsetHeight;
-  
+
         const totalMinutes = 24 * 60;
-        const minutesOffset = Math.round((yOffsetInSlot / slotHeight) * totalMinutes);
-  
-        const startTime = moment(date).startOf("day").add(minutesOffset, "minutes").toDate();
-        const endTime = new Date(startTime.getTime() + 60 * 60000); 
-  
+        const rawMinutes = (yOffsetInSlot / slotHeight) * totalMinutes;
+
+        // Ensure snapped time is rounded correctly (to nearest 15-minute interval)
+        const snappedMinutes = Math.round(rawMinutes / 15) * 15;
+
+        // Adjust for start of the day and correct timezone
+        const baseStart = moment(moment(date).format("YYYY-MM-DD")).add(snappedMinutes, "minutes");
+        const localizedStartTime = baseStart.toDate();
+
+        // End time logic - 1 hour duration
+        const endTime = new Date(localizedStartTime.getTime() + 60 * 60000);
+
+        console.log("✅ Adjusted Start Time (Day View):", localizedStartTime);
+        console.log("✅ Adjusted End Time (Day View):", endTime);
+
         const newEvent = {
-          title: item.title || item.name || "Untitled",
-          start: startTime,
+          title: item.title || "Untitled",
+          start: localizedStartTime,
           end: endTime,
           color: item.color || "#3498db",
         };
-  
+
         handleEventDropFromSidebar(newEvent);
       }
+
     },
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
     }),
   });
-  
+
+
+
   return (
     <div ref={drop} className={`container flex w-[75%] mx-auto my-5 p-6 bg-white shadow-lg rounded-xl relative ${isOver ? "bg-gray-100" : ""}`}>
       <DnDCalendar
@@ -291,7 +308,7 @@ const MyCalendar = () => {
       {showDetails && selectedEvent && (
         <div
           className="absolute bg-white p-4 shadow-lg rounded-md w-80 border z-40"
-          style={{ top: detailsPosition.top, left: detailsPosition.left, transform: 'translateY(10px)',    }}
+          style={{ top: detailsPosition.top, left: detailsPosition.left, transform: 'translateY(10px)', }}
         >
           <button
             className="absolute top-3 right-3 text-red-500 text-sm hover:text-red-700"
