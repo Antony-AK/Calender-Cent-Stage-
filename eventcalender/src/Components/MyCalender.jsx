@@ -147,7 +147,7 @@ const MyCalendar = () => {
 
     try {
       const response = await axios.post(`https://calender-cent-stage.onrender.com/events`, formattedEvent);
-      dispatch(addEvent(response.data));
+      dispatch(setEvents([...events, response.data]));
       console.log("✅ Event successfully added:", response.data);
     } catch (error) {
       console.error("❌ Error adding event:", error.response ? error.response.data : error.message);
